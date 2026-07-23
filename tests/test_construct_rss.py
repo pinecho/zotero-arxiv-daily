@@ -56,8 +56,8 @@ def test_render_feed_escapes_special_characters():
     paper = make_sample_paper(title="Speech & <health> detection", score=7.0, tldr="ok")
     xml = render_feed([paper], _rss_config())
     minidom.parseString(xml)  # must stay well-formed
-    # The title (outside CDATA) must be escaped.
-    assert "<title>Speech &amp; &lt;health&gt; detection</title>" in xml
+    # The title (outside CDATA) must be escaped (with its rank prefix).
+    assert "<title>1. Speech &amp; &lt;health&gt; detection</title>" in xml
 
 
 def test_render_feed_item_links_to_paper_url():
@@ -67,6 +67,35 @@ def test_render_feed_item_links_to_paper_url():
     xml = render_feed([paper], _rss_config())
     assert "<link>https://doi.org/10.1/xyz</link>" in xml
     assert 'isPermaLink="true">https://doi.org/10.1/xyz</guid>' in xml
+
+
+def test_render_feed_numbers_items():
+    papers = [
+        make_sample_paper(title="First paper", score=8.0, tldr="ok"),
+        make_sample_paper(title="Second paper", score=7.0, tldr="ok"),
+    ]
+    xml = render_feed(papers, _rss_config())
+    assert "<title>1. First paper</title>" in xml
+    assert "<title>2. Second paper</title>" in xml
+
+
+def test_render_feed_title_shows_top_count():
+    papers = [make_sample_paper(score=7.0, tldr="ok") for _ in range(3)]
+    xml = render_feed(papers, _rss_config(title="My Feed"))
+    assert "<title>My Feed · Top 3</title>" in xml
+    # Empty issue keeps the plain title (no "Top 0").
+    assert "<title>My Feed</title>" in render_feed([], _rss_config(title="My Feed"))
+
+
+def test_render_feed_has_channel_image():
+    xml = render_feed([make_sample_paper(score=7.0, tldr="ok")], _rss_config(link="https://host/x"))
+    assert "<image>" in xml
+    assert "<url>https://host/x/feed-icon.png</url>" in xml
+
+
+def test_render_feed_image_can_be_omitted():
+    xml = render_feed([make_sample_paper(score=7.0, tldr="ok")], _rss_config(image_url=""))
+    assert "<image>" not in xml
 
 
 def test_render_feed_description_is_cdata_html():

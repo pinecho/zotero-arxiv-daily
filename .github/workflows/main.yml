@@ -36,8 +36,9 @@ jobs:
           OPENALEX_MAILTO: ${{ vars.OPENALEX_MAILTO }}
         run: |
           uv run src/zotero_arxiv_daily/main.py
-          # Publish the XSLT next to feed.xml so the raw XML renders in a browser.
+          # Publish the XSLT + feed icon next to feed.xml (browser rendering + reader logo).
           cp assets/rss.xsl public/rss.xsl
+          cp assets/feed-icon.png public/feed-icon.png
           echo "Generated feed:"
           head -n 20 public/feed.xml
 

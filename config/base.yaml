@@ -54,6 +54,7 @@ rss:
   language: en # The <language> of the RSS channel. Example: en, zh-cn
   self_link: null # The absolute URL of feed.xml (atom:self). Defaults to "<link>/feed.xml" when null.
   stylesheet: rss.xsl # Optional XSLT stylesheet published next to feed.xml so browsers render the raw XML nicely. Set null to disable.
+  image_url: null # Channel logo shown by RSS readers. Defaults to "<link>/feed-icon.png" (published by the workflow) when null. Set "" to omit.
 
 executor:
   debug: false # Whether to use debug mode. Example: true

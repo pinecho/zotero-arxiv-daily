@@ -50,7 +50,7 @@ def _source_label(paper: Paper) -> str:
     return SOURCE_LABELS.get(paper.source, paper.source)
 
 
-def render_item(paper: Paper, build_date: str) -> str:
+def render_item(paper: Paper, build_date: str, rank: int | None = None) -> str:
     """Render a single ``Paper`` as an RSS ``<item>``.
 
     The HTML card produced by :func:`construct_email.get_block_html` is reused
@@ -62,16 +62,18 @@ def render_item(paper: Paper, build_date: str) -> str:
     authors = _format_authors(paper.authors)
     affiliations = _format_affiliations(paper.affiliations)
     link_url = paper.pdf_url or paper.url
+    # Prefix the title with its rank so each paper is numbered in the reader.
+    numbered_title = f"{rank}. {paper.title}" if rank is not None else paper.title
     # Strip a redundant "TLDR:" label; if that empties it, fall back to the abstract.
     tldr = _clean_tldr(paper.tldr) or paper.abstract or ''
     description_html = get_block_html(
-        paper.title, authors, rate, tldr, link_url, affiliations, source=_source_label(paper)
+        numbered_title, authors, rate, tldr, link_url, affiliations, source=_source_label(paper)
     )
     guid = paper.url or link_url
     is_permalink = "true" if guid.startswith("http") else "false"
     return (
         "    <item>\n"
-        f"      <title>{escape(paper.title)}</title>\n"
+        f"      <title>{escape(numbered_title)}</title>\n"
         f"      <link>{escape(paper.url or link_url)}</link>\n"
         f"      <guid isPermaLink=\"{is_permalink}\">{escape(guid)}</guid>\n"
         f"      <category>{escape(paper.source)}</category>\n"
@@ -88,15 +90,22 @@ def render_feed(papers: list[Paper], rss_config: DictConfig) -> str:
     always be published (GitHub Pages needs a file, and RSS readers handle an
     empty channel gracefully).
     """
-    title = rss_config.get("title", "Zotero-arXiv-Daily")
+    base_title = rss_config.get("title", "Zotero-arXiv-Daily")
     link = rss_config.get("link", "")
     description = rss_config.get("description", "Daily paper recommendations based on your Zotero library.")
     language = rss_config.get("language", "en")
     self_link = rss_config.get("self_link", "") or (link.rstrip("/") + "/feed.xml" if link else "")
     stylesheet = rss_config.get("stylesheet", None)
+    # None -> derive from link; "" -> omit; explicit URL -> use as-is.
+    image_url = rss_config.get("image_url", None)
+    if image_url is None:
+        image_url = link.rstrip("/") + "/feed-icon.png" if link else ""
+
+    # Reflect how many papers this issue contains, e.g. "... · Top 50".
+    title = f"{base_title} · Top {len(papers)}" if papers else base_title
 
     build_date = format_datetime(datetime.now(timezone.utc))
-    items = "\n".join(render_item(p, build_date) for p in papers)
+    items = "\n".join(render_item(p, build_date, rank=i) for i, p in enumerate(papers, 1))
 
     lines = ['<?xml version="1.0" encoding="UTF-8"?>']
     if stylesheet:
@@ -111,6 +120,12 @@ def render_feed(papers: list[Paper], rss_config: DictConfig) -> str:
     lines.append('    <generator>zotero-arxiv-daily</generator>')
     if self_link:
         lines.append(f'    <atom:link href="{escape(self_link)}" rel="self" type="application/rss+xml"/>')
+    if image_url:
+        lines.append('    <image>')
+        lines.append(f'      <url>{escape(image_url)}</url>')
+        lines.append(f'      <title>{escape(title)}</title>')
+        lines.append(f'      <link>{escape(link)}</link>')
+        lines.append('    </image>')
     if items:
         lines.append(items)
     lines.append('  </channel>')

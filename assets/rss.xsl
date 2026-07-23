@@ -8,6 +8,7 @@
       <head>
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel="icon" type="image/png" href="feed-icon.png"/>
         <title><xsl:value-of select="rss/channel/title"/></title>
         <style>
           :root { color-scheme: light dark; }
@@ -15,6 +16,8 @@
                  max-width: 820px; margin: 0 auto; padding: 24px 16px; line-height: 1.5; }
           header { border-bottom: 1px solid #8884; padding-bottom: 12px; margin-bottom: 20px; }
           h1 { margin: 0 0 4px; font-size: 1.5rem; }
+          .brand { display: flex; align-items: center; gap: 12px; }
+          .brand img { width: 44px; height: 44px; border-radius: 10px; }
           .meta { color: #8a8a8a; font-size: 0.9rem; }
           .note { background: #8881; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; margin-bottom: 20px; }
           .item { margin-bottom: 22px; }
@@ -22,7 +25,10 @@
       </head>
       <body>
         <header>
-          <h1><xsl:value-of select="rss/channel/title"/></h1>
+          <div class="brand">
+            <img src="feed-icon.png" alt=""/>
+            <h1><xsl:value-of select="rss/channel/title"/></h1>
+          </div>
           <div class="meta"><xsl:value-of select="rss/channel/description"/></div>
           <div class="meta">Updated: <xsl:value-of select="rss/channel/lastBuildDate"/></div>
         </header>
