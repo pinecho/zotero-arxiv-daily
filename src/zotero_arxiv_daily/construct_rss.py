@@ -8,7 +8,8 @@ import re
 
 # Some models echo a "TLDR:" / "**TL;DR:**" label at the start of their output;
 # the card already labels the field, so strip a leading one to avoid duplication.
-_TLDR_PREFIX_RE = re.compile(r'^\s*\**\s*TL;?DR\s*:?\s*\**\s*', re.IGNORECASE)
+# A colon is required so genuine text that merely starts with "TLDR" is left alone.
+_TLDR_PREFIX_RE = re.compile(r'^\s*\**\s*TL;?DR\s*:\s*\**\s*', re.IGNORECASE)
 
 
 def _clean_tldr(text: str) -> str:
