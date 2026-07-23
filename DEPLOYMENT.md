@@ -62,7 +62,7 @@ llm:
     key: ${oc.env:GEMINI_API_KEY}
     base_url: https://generativelanguage.googleapis.com/v1beta/openai/
   generation_kwargs:
-    model: gemini-3.6-flash   # current stable flash; 2.5-flash is deprecated. Free-tier fallback: gemini-3.5-flash-lite
+    model: gemini-3.5-flash-lite   # flash-lite: ~1000 req/day free. (flagship gemini-3.6-flash is only ~20/day free.)
 
 source:
   arxiv:
@@ -178,10 +178,18 @@ workflow that builds a debug feed and uploads it as an artifact (no Pages deploy
 
 ## 5. Notes on limits
 
-- **Gemini free tier** has per-minute/per-day request limits. Only the TL;DR uses
-  the LLM; affiliation extraction runs *only* for papers that carry full text
-  (arXiv), so OpenAlex papers cost **1** call each. `max_paper_num` is set to `50`
-  to stay comfortable — raise it if your quota allows.
+- **Gemini free tier** limits matter a lot here. The binding limits are per-**day**
+  (RPD) and per-**minute** (RPM), and they differ hugely by model:
+  - Flagship flash (`gemini-3.6-flash`) free tier ≈ **20 requests/day** — far too
+    few for a 50-paper digest. Do **not** use it here.
+  - **flash-lite** (`gemini-3.5-flash-lite`) free tier ≈ **1000 requests/day** —
+    the right choice, and fine quality for one-sentence TL;DRs.
+  - Exact current numbers: <https://ai.google.dev/gemini-api/docs/rate-limits>
+    (they change; a model's free RPD can even shift for a given project).
+  Only the TL;DR uses the LLM for every paper; affiliation extraction runs *only*
+  for papers with full text (arXiv), and OpenAlex affiliations come from its API
+  (no LLM). `llm.max_requests_per_minute` paces calls under the RPM limit.
+  `max_paper_num` is `50`; lower it if you hit quota.
 - **GitHub Actions** public-repo runs are capped at 6h each; the current settings
   finish in minutes.
 - The feed is regenerated in full each run (it is not an append-only archive);

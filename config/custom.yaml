@@ -9,12 +9,11 @@ llm:
     key: ${oc.env:GEMINI_API_KEY}
     base_url: https://generativelanguage.googleapis.com/v1beta/openai/ # Gemini's OpenAI-compatible endpoint
   generation_kwargs:
-    # gemini-2.5-flash is deprecated / unavailable to new keys. Use a current stable flash.
-    # If the free tier rejects 3.6-flash, fall back to gemini-3.5-flash-lite.
-    model: gemini-3.6-flash
-  # Gemini free tier allows only 5 requests/minute for gemini-3.6-flash. Pace at 4 to keep
-  # a safety margin (max_retries covers the rare edge 429).
-  max_requests_per_minute: 4
+    # flash-lite has a much larger free-tier DAILY quota (~1000 req/day) than flagship
+    # flash (gemini-3.6-flash is only ~20 req/day free) — required for a 50-paper digest.
+    model: gemini-3.5-flash-lite
+  # Pace under the free-tier per-minute limit (flash-lite free tier is ~15 RPM).
+  max_requests_per_minute: 10
 
 source:
   arxiv:
