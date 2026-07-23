@@ -28,11 +28,6 @@ def _base_config():
                 "zotero.api_key=fake-zotero-key",
                 "zotero.include_path=null",
                 "zotero.ignore_path=null",
-                "email.sender=test@example.com",
-                "email.receiver=test@example.com",
-                "email.smtp_server=localhost",
-                "email.smtp_port=1025",
-                "email.sender_password=test",
                 "llm.api.key=sk-fake",
                 "llm.api.base_url=http://localhost:30000/v1",
                 "llm.generation_kwargs.model=gpt-4o-mini",
@@ -40,10 +35,10 @@ def _base_config():
                 "reranker.api.base_url=http://localhost:30000/v1",
                 "reranker.api.model=text-embedding-3-large",
                 "source.arxiv.category=[cs.AI,cs.CV]",
+                "rss.link=https://example.github.io/repo",
                 "executor.source=[arxiv]",
                 "executor.reranker=api",
                 "executor.debug=false",
-                "executor.send_empty=false",
             ],
         )
     return cfg

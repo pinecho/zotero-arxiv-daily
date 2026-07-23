@@ -48,3 +48,28 @@ def mock_biorxiv_api(monkeypatch):
         return original_get(url, **kwargs)
 
     monkeypatch.setattr(requests, "get", _patched)
+
+
+@pytest.fixture()
+def mock_openalex_api(monkeypatch):
+    """Patch requests.get to return the canned OpenAlex works response.
+
+    ``next_cursor`` is null in the fixture, so pagination stops after one page.
+    """
+    import requests
+    from types import SimpleNamespace
+
+    from tests.canned_responses import SAMPLE_OPENALEX_API_RESPONSE
+
+    original_get = requests.get
+
+    def _patched(url, **kwargs):
+        if "api.openalex.org" in url:
+            resp = SimpleNamespace()
+            resp.status_code = 200
+            resp.json = lambda: SAMPLE_OPENALEX_API_RESPONSE
+            resp.raise_for_status = lambda: None
+            return resp
+        return original_get(url, **kwargs)
+
+    monkeypatch.setattr(requests, "get", _patched)

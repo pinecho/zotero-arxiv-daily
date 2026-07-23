@@ -148,25 +148,23 @@ def test_fetch_zotero_corpus_paper_with_zero_collections(config, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_run_end_to_end(config, monkeypatch):
-    """Full pipeline: Zotero fetch -> filter -> retrieve -> rerank -> TLDR -> email."""
-    import smtplib
+def test_run_end_to_end(config, tmp_path, monkeypatch):
+    """Full pipeline: Zotero fetch -> filter -> retrieve -> rerank -> TLDR -> RSS feed."""
+    import xml.dom.minidom as minidom
 
     from omegaconf import open_dict
 
     from tests.canned_responses import (
-        make_sample_corpus,
         make_sample_paper,
         make_stub_openai_client,
-        make_stub_smtp,
         make_stub_zotero_client,
     )
 
-    # Config: source=["arxiv"], reranker="api", send_empty=false
+    feed_path = tmp_path / "feed.xml"
     with open_dict(config):
         config.executor.source = ["arxiv"]
         config.executor.reranker = "api"
-        config.executor.send_empty = False
+        config.rss.output_path = str(feed_path)
 
     # 1. Stub pyzotero
     stub_zot = make_stub_zotero_client()
@@ -192,35 +190,33 @@ def test_run_end_to_end(config, monkeypatch):
         lambda self: retrieved,
     )
 
-    # 4. Stub SMTP
-    sent = []
-    monkeypatch.setattr(smtplib, "SMTP", make_stub_smtp(sent))
-
-    # 5. Stub sleep (reranker/retriever)
+    # Stub sleep (reranker/retriever)
     monkeypatch.setattr("zotero_arxiv_daily.retriever.base.sleep", lambda _: None)
 
-    # 6. Run
     executor = Executor(config)
     executor.run()
 
-    # Assertions
-    assert len(sent) == 1, "Email should have been sent"
-    _, _, email_body = sent[0]
-    assert "text/html" in email_body
+    # Assertions: a well-formed feed.xml with one item per paper.
+    assert feed_path.exists(), "feed.xml should have been written"
+    xml = feed_path.read_text(encoding="utf-8")
+    minidom.parseString(xml)
+    assert xml.count("<item>") == 2
+    assert "E2E Paper 1" in xml
 
 
-def test_run_no_papers_send_empty_false(config, monkeypatch):
-    """When no papers are found and send_empty=false, no email is sent."""
-    import smtplib
+def test_run_no_papers_writes_empty_feed(config, tmp_path, monkeypatch):
+    """When no papers are found, a valid empty feed is still written (Pages needs a file)."""
+    import xml.dom.minidom as minidom
 
     from omegaconf import open_dict
 
-    from tests.canned_responses import make_stub_openai_client, make_stub_smtp, make_stub_zotero_client
+    from tests.canned_responses import make_stub_openai_client, make_stub_zotero_client
 
+    feed_path = tmp_path / "feed.xml"
     with open_dict(config):
         config.executor.source = ["arxiv"]
         config.executor.reranker = "api"
-        config.executor.send_empty = False
+        config.rss.output_path = str(feed_path)
 
     stub_zot = make_stub_zotero_client()
     monkeypatch.setattr("zotero_arxiv_daily.executor.zotero.Zotero", lambda *a, **kw: stub_zot)
@@ -234,50 +230,12 @@ def test_run_no_papers_send_empty_false(config, monkeypatch):
     from zotero_arxiv_daily.retriever.base import registered_retrievers
 
     monkeypatch.setattr(registered_retrievers["arxiv"], "retrieve_papers", lambda self: [])
-
-    sent = []
-    monkeypatch.setattr(smtplib, "SMTP", make_stub_smtp(sent))
     monkeypatch.setattr("zotero_arxiv_daily.retriever.base.sleep", lambda _: None)
 
     executor = Executor(config)
     executor.run()
 
-    assert len(sent) == 0, "No email should be sent when no papers and send_empty=false"
-
-
-def test_run_no_papers_send_empty_true(config, monkeypatch):
-    """When no papers are found and send_empty=true, empty email is sent."""
-    import smtplib
-
-    from omegaconf import open_dict
-
-    from tests.canned_responses import make_stub_openai_client, make_stub_smtp, make_stub_zotero_client
-
-    with open_dict(config):
-        config.executor.source = ["arxiv"]
-        config.executor.reranker = "api"
-        config.executor.send_empty = True
-
-    stub_zot = make_stub_zotero_client()
-    monkeypatch.setattr("zotero_arxiv_daily.executor.zotero.Zotero", lambda *a, **kw: stub_zot)
-
-    stub_client = make_stub_openai_client()
-    monkeypatch.setattr("zotero_arxiv_daily.executor.OpenAI", lambda **kw: stub_client)
-    monkeypatch.setattr("zotero_arxiv_daily.reranker.api.OpenAI", lambda **kw: stub_client)
-
-    import zotero_arxiv_daily.retriever.arxiv_retriever  # noqa: F401
-
-    from zotero_arxiv_daily.retriever.base import registered_retrievers
-
-    monkeypatch.setattr(registered_retrievers["arxiv"], "retrieve_papers", lambda self: [])
-
-    sent = []
-    monkeypatch.setattr(smtplib, "SMTP", make_stub_smtp(sent))
-    monkeypatch.setattr("zotero_arxiv_daily.retriever.base.sleep", lambda _: None)
-
-    executor = Executor(config)
-    executor.run()
-
-    assert len(sent) == 1, "Email should be sent even with no papers when send_empty=true"
-    _, _, body = sent[0]
-    assert "text/html" in body
+    assert feed_path.exists(), "feed.xml should be written even with no papers"
+    xml = feed_path.read_text(encoding="utf-8")
+    minidom.parseString(xml)
+    assert "<item>" not in xml

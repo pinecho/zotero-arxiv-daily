@@ -18,9 +18,12 @@
 
 ---
 
-<p align="center"> Recommend new arxiv papers of your interest daily according to your Zotero library.
+<p align="center"> Recommend new papers of your interest daily according to your Zotero library, delivered as an RSS feed.
     <br> 
 </p>
+
+> [!NOTE]
+> **This fork** adds an [OpenAlex](https://openalex.org) journal source, replaces e-mail delivery with an **RSS feed** published to **GitHub Pages**, and runs on **Google Gemini's free API**. See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for the full setup guide.
 
 > [!IMPORTANT]
 > Please keep an eye on this repo, and merge your forked repo in time when there is any update of this upstream, in order to enjoy new features and fix found bugs.
@@ -29,154 +32,72 @@
 
 > Track new scientific researches of your interest by just forking (and staring) this repo!😊
 
-*Zotero-arXiv-Daily* finds arxiv papers that may attract you based on the context of your Zotero library, and then sends the result to your mailbox📮. It can be deployed as Github Action Workflow with **zero cost**, **no installation**, and **few configuration** of Github Action environment variables for daily **automatic** delivery.
+*Zotero-arXiv-Daily* finds new papers that may attract you based on the context of your Zotero library, and then publishes the result as an **RSS feed** on GitHub Pages📡 that you subscribe to in any RSS reader (or in Zotero itself). It can be deployed as a Github Action Workflow with **zero cost**, **no installation**, and **few configuration** of Github Action environment variables for daily **automatic** delivery.
 
 ## ✨ Features
 - Totally free! All the calculation can be done in the Github Action runner locally within its quota (for public repo).
+- Delivered as a standard **RSS feed** published to GitHub Pages — read it in any RSS reader or subscribe in Zotero.
 - AI-generated TL;DR for you to quickly pick up target papers.
 - Affiliations of the paper are resolved and presented.
-- Links of PDF and code implementation (if any) presented in the e-mail.
+- Links of PDF / landing page presented in each feed item.
 - List of papers sorted by relevance with your recent research interest.
 - Fast deployment via fork this repo and set environment variables in the Github Action Page.
-- Support LLM API for generating TL;DR of papers.
+- Support LLM API for generating TL;DR of papers (e.g. Google Gemini's free API).
 - Ignore unwanted Zotero papers using a list of glob patterns.
 - Support multiple sources of papers to retrieve:
   - arxiv
   - biorxiv
   - medrxiv
+  - **openalex** (formally published journal / conference papers, not only preprints)
 
 ## 📷 Screenshot
 ![screenshot](./assets/screenshot.png)
 
 ## 🚀 Usage
 ### Quick Start
-1. Fork (and star😘) this repo.
-![fork](./assets/fork.png)
 
-2. Set Github Action environment variables.
-![secrets](./assets/secrets.png)
+**👉 The full, step-by-step setup lives in [`DEPLOYMENT.md`](./DEPLOYMENT.md).** In short:
 
-Below are all the secrets you need to set. They are invisible to anyone including you once they are set, for security.
+1. **Fork** (and star😘) this repo.
+2. **Enable GitHub Pages**: `Settings → Pages → Source: GitHub Actions`.
+3. **Add three Actions secrets** (`Settings → Secrets and variables → Actions`):
 
-| Key |Description | Example |
-| :---  | :---  | :--- |
-| ZOTERO_ID  | User ID of your Zotero account. **User ID is not your username, but a sequence of numbers**Get your ID from [here](https://www.zotero.org/settings/security). You can find it at the position shown in this [screenshot](https://github.com/TideDra/zotero-arxiv-daily/blob/main/assets/userid.png). | 12345678  |
-| ZOTERO_KEY | An Zotero API key with read access. Get a key from [here](https://www.zotero.org/settings/security).  | AB5tZ877P2j7Sm2Mragq041H   |
-| SENDER | The email account of the SMTP server that sends you email. | abc@qq.com |
-| SENDER_PASSWORD | The password of the sender account. Note that it's not necessarily the password for logging in the e-mail client, but the authentication code for SMTP service. Ask your email provider for this.   | abcdefghijklmn |
-| RECEIVER | The e-mail address that receives the paper list. | abc@outlook.com |
-| OPENAI_API_KEY | API Key when using the API to access LLMs. You can get FREE API for using advanced open source LLMs in [SiliconFlow](https://cloud.siliconflow.cn/i/b3XhBRAm). | sk-xxx |
-| OPENAI_API_BASE | API URL when using the API to access LLMs. | https://api.siliconflow.cn/v1 |
+   | Secret | Description | Example |
+   | :--- | :--- | :--- |
+   | `ZOTERO_ID` | User ID of your Zotero account (**a number, not your username**). Get it from [here](https://www.zotero.org/settings/security). | `12345678` |
+   | `ZOTERO_KEY` | A Zotero API key with read access. Get it from [here](https://www.zotero.org/settings/security). | `AB5tZ877P2j7Sm2Mragq041H` |
+   | `GEMINI_API_KEY` | A Google Gemini API key — the free tier is enough. Get it from [Google AI Studio](https://aistudio.google.com/apikey). | `AIza...` |
 
-Then you should also set a public variable `CUSTOM_CONFIG` for your custom configuration.
-![vars](./assets/repo_var.png)
-![custom_config](./assets/config_var.png)
-Paste the following content into the value of `CUSTOM_CONFIG` variable:
-```yaml
-zotero:
-  user_id: ${oc.env:ZOTERO_ID}
-  api_key: ${oc.env:ZOTERO_KEY}
-  include_path: null # Or e.g. ["2026/survey/**", "2026/reading-group/**"]
+   *(Optional variable `OPENALEX_MAILTO` — your e-mail, for OpenAlex's faster "polite pool".)*
 
-email:
-  sender: ${oc.env:SENDER}
-  receiver: ${oc.env:RECEIVER}
-  smtp_server: smtp.qq.com
-  smtp_port: 465
-  sender_password: ${oc.env:SENDER_PASSWORD}
+4. **Edit [`config/custom.yaml`](./config/custom.yaml)** — set `rss.link` to your Pages URL
+   (`https://<username>.github.io/<repo>`), pick your `source.arxiv.category` and
+   `source.openalex.search` keywords. Secrets are read from the environment via
+   `${oc.env:VAR}`, so nothing sensitive is committed.
 
-llm:
-  api:
-    key: ${oc.env:OPENAI_API_KEY}
-    base_url: ${oc.env:OPENAI_API_BASE}
-  generation_kwargs:
-    model: gpt-4o-mini
-
-source:
-  arxiv:
-    category: ["cs.AI","cs.CV","cs.LG","cs.CL"]
-    include_cross_list: false # Set to true to include arXiv cross-list papers in these categories.
-
-executor:
-  debug: ${oc.env:DEBUG,null}
-  source: ['arxiv']
-```
-Set `source.arxiv.include_cross_list: true` if you want cross-listed papers included.
->[!NOTE]
-> `${oc.env:XXX,yyy}` means the value of the environment variable `XXX`. If the variable is not set, the default value `yyy` will be used.
-
-Here is the full configuration, `???` means the value must be filled in:
-```yaml
-zotero:
-  user_id: ??? # User ID of your Zotero account.
-  api_key: ??? # An Zotero API key with read access.
-  include_path: null # A list of glob patterns marking the Zotero collections that should be included. Example: ["2026/survey/**", "2026/reading-group/**"]
-
-source:
-  arxiv:
-    category: null # The categories of target arxiv papers. Find the abbr of your research area from [here](https://arxiv.org/category_taxonomy). Example: ["cs.AI","cs.CV","cs.LG","cs.CL"]
-    include_cross_list: false # Whether to include arXiv cross-list papers in subscribed categories. Example: true
-  biorxiv:
-    category: null # The categories of target biorxiv papers. Find categories from [here](https://www.biorxiv.org/). Example: ["biochemistry","animal behavior and cognition"]
-  medrxiv:
-    category: null # The categories of target medrxiv papers. Find categories from [here](https://www.medrxiv.org/) Example: ["psychiatry and clinical psychology", "neurology"]
-
-email:
-  sender: ??? # The email account of the SMTP server that sends you email. Example: abc@qq.com
-  receiver: ??? # The email account that receives the paper list. Example: abc@outlook.com
-  smtp_server: ??? # The SMTP server that sends the email. Ask your email provider (Gmail, QQ, Outlook, ...) for its SMTP server. Example: smtp.qq.com
-  smtp_port: ??? # The port of SMTP server. Example: 465
-  sender_password: ??? # The password of the sender account. Note that it's not necessarily the password for logging in the e-mail client, but the authentication code for SMTP service. Ask your email provider for this. Example: abcdefghijklmn
-
-llm:
-  api:
-    key: ??? # API Key of your LLM API. Example: sk-xxx
-    base_url: ??? # API URL of your LLM API. Example: https://api.openai.com/v1
-  generation_kwargs:
-  # Arguments for the LLM API. See [here](https://platform.openai.com/docs/api-reference/chat/create) for more details.
-    max_tokens: 16384
-    model: ???
-  language: English # Preferred language for the TL;DR. Example: English
-
-reranker:
-  local:
-    model: jinaai/jina-embeddings-v5-text-nano # The Hugging Face model name of the local embedding model. Example: jinaai/jina-embeddings-v5-text-nano
-    encode_kwargs:
-    # The kwargs for the encode method of the local embedding model. Details see [here](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode)
-      task: retrieval
-      prompt_name: document
-  api:
-    key: null # API Key of your embedding model API. Example: sk-xxx
-    base_url: null # API URL of your embedding model API. Example: https://api.openai.com/v1
-    model: null # The model name of the embedding model. Example: text-embedding-3-large
-    batch_size: null # The batch size for embedding API requests. Adjust to match your provider's limit. Example: 64
-
-executor:
-  debug: false # Whether to use debug mode. Example: true
-  send_empty: false # Whether to send an empty email even if no new papers today. Example: true
-  max_paper_num: 100 # The maximum number of the papers presented in the email. Example: 100
-  source: ??? # The sources of papers to retrieve. Example: ['arxiv','biorxiv','medrxiv']
-  reranker: local # The reranker to use. Example: 'local' or 'api'
-```
-
-That's all! Now you can test the workflow by manually triggering it:
-![test](./assets/test.png)
+5. **Run it**: `Actions → Build RSS feed daily → Run workflow`. When it finishes,
+   subscribe to `https://<username>.github.io/<repo>/feed.xml` in your RSS reader
+   or in Zotero (**New Feed → From URL**).
 
 > [!NOTE]
-> The Test-Workflow Action is the debug version of the main workflow (Send-emails-daily), which always retrieve 5 arxiv papers regardless of the date. While the main workflow will be automatically triggered everyday and retrieve new papers released yesterday. There is no new arxiv paper at weekends and holiday, in which case you may see "No new papers found" in the log of main workflow.
+> Scheduled workflows only run from the repository's **default branch**, so make
+> sure this lands on `main`. The daily cron is `0 22 * * *` (22:00 UTC) — edit it
+> in `.github/workflows/main.yml`.
 
-Then check the log and the receiver email after it finishes.
+The `Test` workflow is a debug run (few papers, no Pages deploy) that uploads the
+generated `feed.xml` as an artifact so you can inspect it.
 
-By default, the main workflow runs on 22:00 UTC everyday. You can change this time by editting the workflow config `.github/workflows/main.yml`.
+The full config schema is documented inline in [`config/base.yaml`](./config/base.yaml).
 
 ### Local Running
 Supported by [uv](https://github.com/astral-sh/uv), this workflow can easily run on your local device if uv is installed:
 ```bash
-# set all the environment variables
-# export ZOTERO_ID=xxxx
-# ...
+# set the required environment variables
+export ZOTERO_ID=xxxx ZOTERO_KEY=xxxx GEMINI_API_KEY=xxxx
+export DEBUG=true   # optional: retrieve only a few papers
 cd zotero-arxiv-daily
-uv run main.py
+uv run src/zotero_arxiv_daily/main.py
+cat public/feed.xml
 ```
 
 ## 🚀 Sync with the latest version
@@ -186,11 +107,11 @@ This project is in active development. You can subscribe this repo via `Watch` s
 
 
 ## 📖 How it works
-*Zotero-arXiv-Daily* firstly retrieves all the papers in your Zotero library and all the papers released in the previous day, via corresponding API. Then it calculates the embedding of each paper's abstract via an embedding model. The score of a paper is its weighted average similarity over all your Zotero papers (newer paper added to the library has higher weight). The TLDR of each paper is generated by LLM, given the text extracted by pymupdf4llm.
+*Zotero-arXiv-Daily* firstly retrieves all the papers in your Zotero library and all the papers released in the previous day (from arXiv, OpenAlex, bioRxiv, medRxiv), via corresponding API. Then it calculates the embedding of each paper's abstract via an embedding model. The score of a paper is its weighted average similarity over all your Zotero papers (newer paper added to the library has higher weight). The TLDR of each paper is generated by LLM. Finally the ranked papers are rendered as an RSS feed (`public/feed.xml`) and published to GitHub Pages.
 
 ## 📌 Limitations
 - The recommendation algorithm is very simple, it may not accurately reflect your interest. Welcome better ideas for improving the algorithm!
-- High `MAX_PAPER_NUM` can lead the execution time exceed the limitation of Github Action runner (6h per execution for public repo, and 2000 mins per month for private repo). Commonly, the quota given to public repo is definitely enough for individual use. If you have special requirements, you can deploy the workflow in your own server, or use a self-hosted Github Action runner, or pay for the exceeded execution time.
+- High `executor.max_paper_num` can lead the execution time exceed the limitation of Github Action runner (6h per execution for public repo, and 2000 mins per month for private repo). Adding the OpenAlex source enlarges the candidate pool, so keep `max_paper_num` reasonable (default `50`). If you have special requirements, you can deploy the workflow in your own server, or use a self-hosted Github Action runner, or pay for the exceeded execution time.
 
 
 ## 📃 License

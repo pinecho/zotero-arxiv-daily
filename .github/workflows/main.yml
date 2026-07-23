@@ -1,34 +1,51 @@
-name: Send emails daily
+name: Build RSS feed daily
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 22 * * *'
 
+# Permissions required to publish to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  calculate-and-send:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          repository: ${{ vars.REPOSITORY }}
-          ref: ${{ vars.REF }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Run script
+      - name: Build RSS feed
         env:
           ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
           ZOTERO_KEY: ${{ secrets.ZOTERO_KEY }}
-          SENDER: ${{ secrets.SENDER }}
-          RECEIVER: ${{ secrets.RECEIVER }}
-          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
-          CUSTOM_CONFIG: ${{ vars.CUSTOM_CONFIG }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENALEX_MAILTO: ${{ vars.OPENALEX_MAILTO }}
         run: |
-          printf "%b\n" "$CUSTOM_CONFIG" > config/custom.yaml
-          echo "Use custom config: "
-          cat config/custom.yaml
           uv run src/zotero_arxiv_daily/main.py
+          # Publish the XSLT next to feed.xml so the raw XML renders in a browser.
+          cp assets/rss.xsl public/rss.xsl
+          echo "Generated feed:"
+          head -n 20 public/feed.xml
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

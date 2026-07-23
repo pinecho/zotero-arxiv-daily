@@ -125,41 +125,6 @@ def make_stub_zotero_client(collections=None, items=None):
 
 
 # ---------------------------------------------------------------------------
-# SMTP stub
-# ---------------------------------------------------------------------------
-
-
-def make_stub_smtp(sent_emails: list):
-    """Return a class that records calls to sendmail().
-
-    Usage:
-        sent = []
-        monkeypatch.setattr(smtplib, "SMTP", make_stub_smtp(sent))
-        ...
-        assert len(sent) == 1
-        sender, recipients, body = sent[0]
-    """
-
-    class StubSMTP:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def starttls(self):
-            pass
-
-        def login(self, user, password):
-            pass
-
-        def sendmail(self, sender, recipients, msg):
-            sent_emails.append((sender, recipients, msg))
-
-        def quit(self):
-            pass
-
-    return StubSMTP
-
-
-# ---------------------------------------------------------------------------
 # Paper / CorpusPaper factories
 # ---------------------------------------------------------------------------
 
@@ -226,6 +191,55 @@ SAMPLE_BIORXIV_API_RESPONSE = {
             "date": "2026-03-01",
             "category": "bioinformatics",
             "version": "1",
+        },
+    ],
+}
+
+
+# ---------------------------------------------------------------------------
+# OpenAlex canned API response (single page: next_cursor is null)
+# ---------------------------------------------------------------------------
+
+SAMPLE_OPENALEX_API_RESPONSE = {
+    "meta": {"count": 3, "next_cursor": None, "per_page": 200},
+    "results": [
+        {
+            # Good work: abstract present, DOI + open-access PDF.
+            "id": "https://openalex.org/W1",
+            "doi": "https://doi.org/10.1000/openalex-1",
+            "title": "An openalex paper",
+            "abstract_inverted_index": {
+                "We": [0], "present": [1], "a": [2], "novel": [3], "method": [4]
+            },
+            "authorships": [
+                {"author": {"display_name": "Alice Zhang"}},
+                {"author": {"display_name": "Bob Li"}},
+            ],
+            "primary_location": {"landing_page_url": "https://example.org/openalex-1"},
+            "best_oa_location": {"pdf_url": "https://example.org/openalex-1.pdf"},
+            "publication_date": "2026-03-02",
+        },
+        {
+            # No abstract -> convert_to_paper should skip this one.
+            "id": "https://openalex.org/W2",
+            "doi": "https://doi.org/10.1000/openalex-2",
+            "title": "Abstract-less openalex paper",
+            "abstract_inverted_index": None,
+            "authorships": [{"author": {"display_name": "Carol Wu"}}],
+            "primary_location": {"landing_page_url": "https://example.org/openalex-2"},
+            "best_oa_location": None,
+            "publication_date": "2026-03-02",
+        },
+        {
+            # No DOI, no OA PDF -> url falls back to landing page, pdf_url is None.
+            "id": "https://openalex.org/W3",
+            "doi": None,
+            "title": "Closed-access openalex paper",
+            "abstract_inverted_index": {"Closed": [0], "access": [1], "work": [2]},
+            "authorships": [{"author": {"display_name": "Dan Kim"}}],
+            "primary_location": {"landing_page_url": "https://example.org/openalex-3"},
+            "best_oa_location": None,
+            "publication_date": "2026-03-02",
         },
     ],
 }

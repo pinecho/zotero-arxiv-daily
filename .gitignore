@@ -17,3 +17,6 @@ models
 test-compose.yml
 outputs
 config/private.yaml
+
+# Generated RSS output (published to GitHub Pages, not committed)
+public/
