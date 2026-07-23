@@ -104,7 +104,13 @@ class Executor:
         all_papers = []
         for source, retriever in self.retrievers.items():
             logger.info(f"Retrieving {source} papers...")
-            papers = retriever.retrieve_papers()
+            # A single flaky source (e.g. an OpenAlex 429 burst) must not kill the
+            # whole feed — log it and carry on with whatever other sources return.
+            try:
+                papers = retriever.retrieve_papers()
+            except Exception as exc:
+                logger.warning(f"Retrieval from {source} failed, skipping this source: {exc}")
+                continue
             if len(papers) == 0:
                 logger.info(f"No {source} papers found")
                 continue

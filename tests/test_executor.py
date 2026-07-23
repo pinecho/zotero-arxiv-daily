@@ -243,6 +243,41 @@ def test_run_paces_llm_requests(config, tmp_path, monkeypatch):
     assert slept == [24.0, 24.0]
 
 
+def test_run_source_failure_is_non_fatal(config, tmp_path, monkeypatch):
+    """If a retriever raises (e.g. OpenAlex 429), the run still completes and writes a feed."""
+    import xml.dom.minidom as minidom
+
+    from omegaconf import open_dict
+
+    from tests.canned_responses import make_stub_openai_client, make_stub_zotero_client
+
+    feed_path = tmp_path / "feed.xml"
+    with open_dict(config):
+        config.executor.source = ["arxiv"]
+        config.executor.reranker = "api"
+        config.rss.output_path = str(feed_path)
+
+    stub_zot = make_stub_zotero_client()
+    monkeypatch.setattr("zotero_arxiv_daily.executor.zotero.Zotero", lambda *a, **kw: stub_zot)
+    stub_client = make_stub_openai_client()
+    monkeypatch.setattr("zotero_arxiv_daily.executor.OpenAI", lambda **kw: stub_client)
+    monkeypatch.setattr("zotero_arxiv_daily.reranker.api.OpenAI", lambda **kw: stub_client)
+
+    import zotero_arxiv_daily.retriever.arxiv_retriever  # noqa: F401
+    from zotero_arxiv_daily.retriever.base import registered_retrievers
+
+    def _boom(self):
+        raise RuntimeError("429 Too Many Requests")
+
+    monkeypatch.setattr(registered_retrievers["arxiv"], "retrieve_papers", _boom)
+    monkeypatch.setattr("zotero_arxiv_daily.retriever.base.sleep", lambda _: None)
+
+    Executor(config).run()  # must not raise
+
+    assert feed_path.exists()
+    minidom.parseString(feed_path.read_text(encoding="utf-8"))
+
+
 def test_run_no_papers_writes_empty_feed(config, tmp_path, monkeypatch):
     """When no papers are found, a valid empty feed is still written (Pages needs a file)."""
     import xml.dom.minidom as minidom
