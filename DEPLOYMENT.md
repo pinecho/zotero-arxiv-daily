@@ -62,7 +62,7 @@ llm:
     key: ${oc.env:GEMINI_API_KEY}
     base_url: https://generativelanguage.googleapis.com/v1beta/openai/
   generation_kwargs:
-    model: gemini-2.5-flash
+    model: gemini-3.6-flash   # current stable flash; 2.5-flash is deprecated. Free-tier fallback: gemini-3.5-flash-lite
 
 source:
   arxiv:

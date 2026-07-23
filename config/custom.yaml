@@ -8,7 +8,9 @@ llm:
     key: ${oc.env:GEMINI_API_KEY}
     base_url: https://generativelanguage.googleapis.com/v1beta/openai/ # Gemini's OpenAI-compatible endpoint
   generation_kwargs:
-    model: gemini-2.5-flash
+    # gemini-2.5-flash is deprecated / unavailable to new keys. Use a current stable flash.
+    # If the free tier rejects 3.6-flash, fall back to gemini-3.5-flash-lite.
+    model: gemini-3.6-flash
 
 source:
   arxiv:
