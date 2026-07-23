@@ -77,6 +77,17 @@ def test_render_feed_description_is_cdata_html():
     assert "Sample Paper Title" in xml
 
 
+def test_render_feed_strips_redundant_tldr_prefix():
+    p1 = make_sample_paper(score=7.0, tldr="**TLDR:** StellarTTS is a fast model.")
+    xml1 = render_feed([p1], _rss_config())
+    assert "StellarTTS is a fast model." in xml1
+    assert "**TLDR:**" not in xml1
+    # A bold title that is not a TLDR label must be left intact.
+    p2 = make_sample_paper(score=7.0, tldr="**Audio-Zero** is the first framework.")
+    xml2 = render_feed([p2], _rss_config())
+    assert "**Audio-Zero**" in xml2
+
+
 def test_render_feed_shows_source_label():
     arxiv_paper = make_sample_paper(source="arxiv", score=7.0, tldr="ok")
     openalex_paper = make_sample_paper(source="openalex", score=7.0, tldr="ok")

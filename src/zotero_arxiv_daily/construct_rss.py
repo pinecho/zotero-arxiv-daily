@@ -4,6 +4,15 @@ from omegaconf import DictConfig
 from email.utils import format_datetime
 from xml.sax.saxutils import escape
 from datetime import datetime, timezone
+import re
+
+# Some models echo a "TLDR:" / "**TL;DR:**" label at the start of their output;
+# the card already labels the field, so strip a leading one to avoid duplication.
+_TLDR_PREFIX_RE = re.compile(r'^\s*\**\s*TL;?DR\s*:?\s*\**\s*', re.IGNORECASE)
+
+
+def _clean_tldr(text: str) -> str:
+    return _TLDR_PREFIX_RE.sub('', text) if text else text
 
 
 def _format_authors(authors: list[str]) -> str:
@@ -53,8 +62,9 @@ def render_item(paper: Paper, build_date: str) -> str:
     authors = _format_authors(paper.authors)
     affiliations = _format_affiliations(paper.affiliations)
     link_url = paper.pdf_url or paper.url
+    tldr = _clean_tldr(paper.tldr or paper.abstract or '')
     description_html = _source_badge(paper.source) + get_block_html(
-        paper.title, authors, rate, paper.tldr or paper.abstract or '', link_url, affiliations
+        paper.title, authors, rate, tldr, link_url, affiliations
     )
     guid = paper.url or link_url
     is_permalink = "true" if guid.startswith("http") else "false"
