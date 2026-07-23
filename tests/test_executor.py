@@ -204,6 +204,45 @@ def test_run_end_to_end(config, tmp_path, monkeypatch):
     assert "E2E Paper 1" in xml
 
 
+def test_run_paces_llm_requests(config, tmp_path, monkeypatch):
+    """With max_requests_per_minute set, run() sleeps n_calls*60/rpm per paper."""
+    from omegaconf import open_dict
+
+    from tests.canned_responses import (
+        make_sample_paper,
+        make_stub_openai_client,
+        make_stub_zotero_client,
+    )
+
+    feed_path = tmp_path / "feed.xml"
+    with open_dict(config):
+        config.executor.source = ["arxiv"]
+        config.executor.reranker = "api"
+        config.rss.output_path = str(feed_path)
+        config.llm.max_requests_per_minute = 5  # -> 12s per call
+
+    stub_zot = make_stub_zotero_client()
+    monkeypatch.setattr("zotero_arxiv_daily.executor.zotero.Zotero", lambda *a, **kw: stub_zot)
+    stub_client = make_stub_openai_client()
+    monkeypatch.setattr("zotero_arxiv_daily.executor.OpenAI", lambda **kw: stub_client)
+    monkeypatch.setattr("zotero_arxiv_daily.reranker.api.OpenAI", lambda **kw: stub_client)
+
+    # Two papers with full_text -> 2 LLM calls each -> sleep(2*60/5)=24.0 per paper.
+    retrieved = [make_sample_paper(title="P1", score=None), make_sample_paper(title="P2", score=None)]
+    import zotero_arxiv_daily.retriever.arxiv_retriever  # noqa: F401
+    from zotero_arxiv_daily.retriever.base import registered_retrievers
+
+    monkeypatch.setattr(registered_retrievers["arxiv"], "retrieve_papers", lambda self: retrieved)
+    monkeypatch.setattr("zotero_arxiv_daily.retriever.base.sleep", lambda _: None)
+
+    slept: list[float] = []
+    monkeypatch.setattr("zotero_arxiv_daily.executor.sleep", lambda s: slept.append(s))
+
+    Executor(config).run()
+
+    assert slept == [24.0, 24.0]
+
+
 def test_run_no_papers_writes_empty_feed(config, tmp_path, monkeypatch):
     """When no papers are found, a valid empty feed is still written (Pages needs a file)."""
     import xml.dom.minidom as minidom

@@ -7,6 +7,7 @@ from .protocol import CorpusPaper
 import random
 from datetime import datetime
 from pathlib import Path
+from time import sleep
 from .reranker import get_reranker_cls
 from .construct_rss import render_feed
 from openai import OpenAI
@@ -38,7 +39,11 @@ class Executor:
             source: get_retriever_cls(source)(config) for source in config.executor.source
         }
         self.reranker = get_reranker_cls(config.executor.reranker)(config)
-        self.openai_client = OpenAI(api_key=config.llm.api.key, base_url=config.llm.api.base_url)
+        self.openai_client = OpenAI(
+            api_key=config.llm.api.key,
+            base_url=config.llm.api.base_url,
+            max_retries=config.llm.get("max_retries", 5),
+        )
     def fetch_zotero_corpus(self) -> list[CorpusPaper]:
         logger.info("Fetching zotero corpus")
         zot = zotero.Zotero(self.config.zotero.user_id, 'user', self.config.zotero.api_key)
@@ -112,13 +117,20 @@ class Executor:
             reranked_papers = self.reranker.rerank(all_papers, corpus)
             reranked_papers = reranked_papers[:self.config.executor.max_paper_num]
             logger.info("Generating TLDR and affiliations...")
+            # Free LLM tiers (e.g. Gemini free tier = 5 req/min) rate-limit hard.
+            # Pace requests to stay under max_requests_per_minute when it is set.
+            rpm = self.config.llm.get("max_requests_per_minute", None)
             for p in tqdm(reranked_papers):
                 p.generate_tldr(self.openai_client, self.config.llm)
+                n_calls = 1
                 # LLM affiliation extraction needs full text (arXiv). Sources that
                 # already carry affiliations (e.g. OpenAlex) or lack full text keep
                 # what convert_to_paper set, instead of being overwritten with None.
                 if p.full_text is not None:
                     p.generate_affiliations(self.openai_client, self.config.llm)
+                    n_calls += 1
+                if rpm:
+                    sleep(n_calls * 60.0 / rpm)
         else:
             logger.info("No new papers found. Writing an empty feed.")
         # Always write the feed so GitHub Pages has a current file to publish.

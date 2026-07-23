@@ -30,6 +30,8 @@ llm:
     max_tokens: 16384
     model: ???
   language: English # Preferred language for the TL;DR. Example: English
+  max_requests_per_minute: null # Pace LLM calls to respect a free-tier rate limit. Gemini free tier is ~5. null = no pacing. Example: 5
+  max_retries: 5 # How many times the LLM client retries on transient errors (e.g. 429). Example: 5
 
 reranker:
   local:
