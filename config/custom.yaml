@@ -1,7 +1,8 @@
 zotero:
   user_id: ${oc.env:ZOTERO_ID}
   api_key: ${oc.env:ZOTERO_KEY}
-  include_path: null # Or set a list of glob patterns, e.g. ["2026/survey/**","2026/reading-group/**"]
+  # Rank only against the KTP collection (speech/audio-health); ignore PhD (fruit/other ML).
+  include_path: ["KTP", "KTP/**"]
 
 llm:
   api:
@@ -15,7 +16,8 @@ llm:
 source:
   arxiv:
     # Speech / audio-based deep-learning health detection.
-    category: ["eess.AS","cs.SD","cs.LG","eess.SP"]
+    # cs.LG dropped: it flooded the feed with general ML (generative models, CLIP, etc.).
+    category: ["eess.AS","cs.SD","eess.SP"]
     include_cross_list: false # Set true to also include cross-listed papers in these categories.
   openalex:
     filter_type: search # "search" = keyword mode (start here). Switch to "topic" after confirming topic_ids below.

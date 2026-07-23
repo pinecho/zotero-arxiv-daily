@@ -75,3 +75,10 @@ def test_render_feed_description_is_cdata_html():
     assert "<![CDATA[" in xml
     assert "TLDR text here" in xml
     assert "Sample Paper Title" in xml
+
+
+def test_render_feed_shows_source_label():
+    arxiv_paper = make_sample_paper(source="arxiv", score=7.0, tldr="ok")
+    openalex_paper = make_sample_paper(source="openalex", score=7.0, tldr="ok")
+    assert "arXiv (preprint)" in render_feed([arxiv_paper], _rss_config())
+    assert "OpenAlex (journal / published)" in render_feed([openalex_paper], _rss_config())

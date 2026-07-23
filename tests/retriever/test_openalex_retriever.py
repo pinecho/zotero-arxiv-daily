@@ -57,6 +57,16 @@ def test_openalex_convert_to_paper_full(config):
     assert paper.url == "https://doi.org/10.1000/openalex-1"
     assert paper.pdf_url == "https://example.org/openalex-1.pdf"
     assert paper.full_text is None
+    # Affiliations come straight from OpenAlex institutions (unique, in order).
+    assert paper.affiliations == ["MIT", "Stanford University"]
+
+
+def test_openalex_convert_no_institutions_gives_none(config):
+    _set_openalex(config)
+    retriever = OpenAlexRetriever(config)
+    raw = SAMPLE_OPENALEX_API_RESPONSE["results"][2]  # authorships without institutions
+    paper = retriever.convert_to_paper(raw)
+    assert paper.affiliations is None
 
 
 def test_openalex_convert_skips_missing_abstract(config):

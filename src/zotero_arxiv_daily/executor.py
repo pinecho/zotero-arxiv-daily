@@ -114,7 +114,11 @@ class Executor:
             logger.info("Generating TLDR and affiliations...")
             for p in tqdm(reranked_papers):
                 p.generate_tldr(self.openai_client, self.config.llm)
-                p.generate_affiliations(self.openai_client, self.config.llm)
+                # LLM affiliation extraction needs full text (arXiv). Sources that
+                # already carry affiliations (e.g. OpenAlex) or lack full text keep
+                # what convert_to_paper set, instead of being overwritten with None.
+                if p.full_text is not None:
+                    p.generate_affiliations(self.openai_client, self.config.llm)
         else:
             logger.info("No new papers found. Writing an empty feed.")
         # Always write the feed so GitHub Pages has a current file to publish.

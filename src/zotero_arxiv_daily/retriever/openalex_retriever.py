@@ -164,11 +164,20 @@ class OpenAlexRetriever(BaseRetriever):
         if not abstract:
             logger.debug(f"Skipping OpenAlex work without abstract: {title}")
             return None
+        authorships = raw_paper.get("authorships", [])
         authors = [
             a["author"]["display_name"]
-            for a in raw_paper.get("authorships", [])
+            for a in authorships
             if a.get("author") and a["author"].get("display_name")
         ]
+        # OpenAlex ships author institutions directly, so we can fill affiliations
+        # here (no LLM / full text needed). Keep unique names in author order.
+        affiliations: list[str] = []
+        for a in authorships:
+            for inst in a.get("institutions") or []:
+                name = inst.get("display_name")
+                if name and name not in affiliations:
+                    affiliations.append(name)
         # Prefer the DOI (already a full https://doi.org/... URL), then the
         # landing page, then the OpenAlex work URL.
         url = raw_paper.get("doi")
@@ -185,4 +194,5 @@ class OpenAlexRetriever(BaseRetriever):
             url=url,
             pdf_url=pdf_url,
             full_text=None,
+            affiliations=affiliations or None,
         )

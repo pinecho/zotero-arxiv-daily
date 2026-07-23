@@ -23,6 +23,24 @@ def _format_affiliations(affiliations: list[str] | None) -> str:
     return shown
 
 
+# Human-readable source labels shown on each item so readers can tell a
+# published journal paper from a preprint at a glance.
+SOURCE_LABELS = {
+    "arxiv": "arXiv (preprint)",
+    "openalex": "OpenAlex (journal / published)",
+    "biorxiv": "bioRxiv (preprint)",
+    "medrxiv": "medRxiv (preprint)",
+}
+
+
+def _source_badge(source: str) -> str:
+    label = SOURCE_LABELS.get(source, source)
+    return (
+        f'<div style="font-family: Arial, sans-serif; font-size: 13px; '
+        f'color: #888; margin: 0 0 6px 2px;">📚 Source: {label}</div>'
+    )
+
+
 def render_item(paper: Paper, build_date: str) -> str:
     """Render a single ``Paper`` as an RSS ``<item>``.
 
@@ -35,7 +53,7 @@ def render_item(paper: Paper, build_date: str) -> str:
     authors = _format_authors(paper.authors)
     affiliations = _format_affiliations(paper.affiliations)
     link_url = paper.pdf_url or paper.url
-    description_html = get_block_html(
+    description_html = _source_badge(paper.source) + get_block_html(
         paper.title, authors, rate, paper.tldr or paper.abstract or '', link_url, affiliations
     )
     guid = paper.url or link_url

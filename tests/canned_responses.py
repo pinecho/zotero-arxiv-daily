@@ -212,8 +212,10 @@ SAMPLE_OPENALEX_API_RESPONSE = {
                 "We": [0], "present": [1], "a": [2], "novel": [3], "method": [4]
             },
             "authorships": [
-                {"author": {"display_name": "Alice Zhang"}},
-                {"author": {"display_name": "Bob Li"}},
+                {"author": {"display_name": "Alice Zhang"},
+                 "institutions": [{"display_name": "MIT"}]},
+                {"author": {"display_name": "Bob Li"},
+                 "institutions": [{"display_name": "MIT"}, {"display_name": "Stanford University"}]},
             ],
             "primary_location": {"landing_page_url": "https://example.org/openalex-1"},
             "best_oa_location": {"pdf_url": "https://example.org/openalex-1.pdf"},
