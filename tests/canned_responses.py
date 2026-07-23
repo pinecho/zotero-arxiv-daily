@@ -217,7 +217,10 @@ SAMPLE_OPENALEX_API_RESPONSE = {
                 {"author": {"display_name": "Bob Li"},
                  "institutions": [{"display_name": "MIT"}, {"display_name": "Stanford University"}]},
             ],
-            "primary_location": {"landing_page_url": "https://example.org/openalex-1"},
+            "primary_location": {
+                "landing_page_url": "https://example.org/openalex-1",
+                "source": {"display_name": "Journal of Testing"},
+            },
             "best_oa_location": {"pdf_url": "https://example.org/openalex-1.pdf"},
             "publication_date": "2026-03-02",
         },

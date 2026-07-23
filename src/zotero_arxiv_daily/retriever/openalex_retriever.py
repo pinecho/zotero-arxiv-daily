@@ -178,14 +178,13 @@ class OpenAlexRetriever(BaseRetriever):
                 name = inst.get("display_name")
                 if name and name not in affiliations:
                     affiliations.append(name)
+        primary = raw_paper.get("primary_location") or {}
         # Prefer the DOI (already a full https://doi.org/... URL), then the
         # landing page, then the OpenAlex work URL.
-        url = raw_paper.get("doi")
-        if not url:
-            primary = raw_paper.get("primary_location") or {}
-            url = primary.get("landing_page_url") or raw_paper.get("id")
+        url = raw_paper.get("doi") or primary.get("landing_page_url") or raw_paper.get("id")
         best_oa = raw_paper.get("best_oa_location") or {}
         pdf_url = best_oa.get("pdf_url")  # may be None when not open access
+        venue = (primary.get("source") or {}).get("display_name")  # journal / conference name
         return Paper(
             source=self.name,
             title=title,
@@ -195,4 +194,5 @@ class OpenAlexRetriever(BaseRetriever):
             pdf_url=pdf_url,
             full_text=None,
             affiliations=affiliations or None,
+            venue=venue,
         )

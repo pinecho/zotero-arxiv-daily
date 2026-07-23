@@ -52,7 +52,15 @@ def get_empty_html():
   """
   return block_template
 
-def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affiliations:str=None):
+def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affiliations:str=None, source:str=None):
+    source_row = ""
+    if source:
+        source_row = """
+    <tr>
+        <td style="font-size: 14px; color: #333; padding: 8px 0;">
+            <strong>Source:</strong> {source}
+        </td>
+    </tr>""".format(source=source)
     block_template = """
     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; border: 1px solid #ddd; border-radius: 8px; padding: 16px; background-color: #f9f9f9;">
     <tr>
@@ -71,7 +79,7 @@ def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affi
         <td style="font-size: 14px; color: #333; padding: 8px 0;">
             <strong>Relevance:</strong> {rate}
         </td>
-    </tr>
+    </tr>{source_row}
     <tr>
         <td style="font-size: 14px; color: #333; padding: 8px 0;">
             <strong>TLDR:</strong> {tldr}
@@ -85,7 +93,7 @@ def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affi
     </tr>
 </table>
 """
-    return block_template.format(title=title, authors=authors,rate=rate, tldr=tldr, pdf_url=pdf_url, affiliations=affiliations)
+    return block_template.format(title=title, authors=authors,rate=rate, tldr=tldr, pdf_url=pdf_url, affiliations=affiliations, source_row=source_row)
 
 def get_stars(score:float):
     full_star = '<span class="full-star">⭐</span>'

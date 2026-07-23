@@ -90,6 +90,23 @@ def test_render_feed_strips_redundant_tldr_prefix():
 
 def test_render_feed_shows_source_label():
     arxiv_paper = make_sample_paper(source="arxiv", score=7.0, tldr="ok")
-    openalex_paper = make_sample_paper(source="openalex", score=7.0, tldr="ok")
-    assert "arXiv (preprint)" in render_feed([arxiv_paper], _rss_config())
-    assert "OpenAlex (journal / published)" in render_feed([openalex_paper], _rss_config())
+    xml = render_feed([arxiv_paper], _rss_config())
+    # Source is a labelled row inside the card, no emoji.
+    assert "<strong>Source:</strong> arXiv (preprint)" in xml
+    assert "📚" not in xml
+    # No venue -> generic published label.
+    openalex_paper = make_sample_paper(source="openalex", venue=None, score=7.0, tldr="ok")
+    assert "<strong>Source:</strong> OpenAlex (published)" in render_feed([openalex_paper], _rss_config())
+
+
+def test_render_feed_shows_openalex_venue():
+    paper = make_sample_paper(source="openalex", venue="Frontiers in Digital Health", score=7.0, tldr="ok")
+    xml = render_feed([paper], _rss_config())
+    assert "<strong>Source:</strong> OpenAlex · Frontiers in Digital Health" in xml
+
+
+def test_render_feed_source_row_after_relevance():
+    paper = make_sample_paper(source="arxiv", score=7.0, tldr="ok")
+    xml = render_feed([paper], _rss_config())
+    # Source row must appear below the Relevance row and above the TLDR row.
+    assert xml.index("Relevance:") < xml.index("Source:") < xml.index("TLDR:")

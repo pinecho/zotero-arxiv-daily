@@ -37,18 +37,17 @@ def _format_affiliations(affiliations: list[str] | None) -> str:
 # published journal paper from a preprint at a glance.
 SOURCE_LABELS = {
     "arxiv": "arXiv (preprint)",
-    "openalex": "OpenAlex (journal / published)",
+    "openalex": "OpenAlex (published)",
     "biorxiv": "bioRxiv (preprint)",
     "medrxiv": "medRxiv (preprint)",
 }
 
 
-def _source_badge(source: str) -> str:
-    label = SOURCE_LABELS.get(source, source)
-    return (
-        f'<div style="font-family: Arial, sans-serif; font-size: 13px; '
-        f'color: #888; margin: 0 0 6px 2px;">📚 Source: {label}</div>'
-    )
+def _source_label(paper: Paper) -> str:
+    # For OpenAlex, show the actual journal / conference name when available.
+    if paper.source == "openalex" and paper.venue:
+        return f"OpenAlex · {paper.venue}"
+    return SOURCE_LABELS.get(paper.source, paper.source)
 
 
 def render_item(paper: Paper, build_date: str) -> str:
@@ -63,9 +62,10 @@ def render_item(paper: Paper, build_date: str) -> str:
     authors = _format_authors(paper.authors)
     affiliations = _format_affiliations(paper.affiliations)
     link_url = paper.pdf_url or paper.url
-    tldr = _clean_tldr(paper.tldr or paper.abstract or '')
-    description_html = _source_badge(paper.source) + get_block_html(
-        paper.title, authors, rate, tldr, link_url, affiliations
+    # Strip a redundant "TLDR:" label; if that empties it, fall back to the abstract.
+    tldr = _clean_tldr(paper.tldr) or paper.abstract or ''
+    description_html = get_block_html(
+        paper.title, authors, rate, tldr, link_url, affiliations, source=_source_label(paper)
     )
     guid = paper.url or link_url
     is_permalink = "true" if guid.startswith("http") else "false"

@@ -59,6 +59,8 @@ def test_openalex_convert_to_paper_full(config):
     assert paper.full_text is None
     # Affiliations come straight from OpenAlex institutions (unique, in order).
     assert paper.affiliations == ["MIT", "Stanford University"]
+    # Venue (journal / conference) comes from primary_location.source.
+    assert paper.venue == "Journal of Testing"
 
 
 def test_openalex_convert_no_institutions_gives_none(config):
