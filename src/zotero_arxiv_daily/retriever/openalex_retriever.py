@@ -118,6 +118,11 @@ class OpenAlexRetriever(BaseRetriever):
         # ``has_abstract:true`` avoids wasting the candidate budget on works
         # whose abstract we cannot rank on.
         base_filter = f"from_publication_date:{from_date},has_abstract:true"
+        # Restrict to formally published venue types (journal/conference), dropping
+        # repository/preprint hosts (Zenodo, institutional repos, ...) when configured.
+        source_types = cfg.get("source_types", None)
+        if source_types:
+            base_filter += ",primary_location.source.type:" + "|".join(source_types)
         common: dict[str, Any] = {}
         if mailto:
             common["mailto"] = mailto

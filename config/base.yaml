@@ -18,6 +18,7 @@ source:
     search: null # A list of keyword queries used when filter_type=search. Results of every query are unioned. Example: ["speech health detection","voice disorder deep learning","pathological speech"]
     topic_ids: null # A list of OpenAlex topic ids used when filter_type=topic (OR-joined). Concepts are deprecated; use Topics. Example: ["T10863","T10860","T10201"]
     days: 2 # Look-back window in days for from_publication_date (keep close to the daily cron cadence). Example: 2
+    source_types: null # Restrict to these OpenAlex source (venue) types, dropping repository/preprint hosts. null = no restriction. Example: ["journal","conference"]
     max_results: 200 # Cap on candidate works fetched (bounds runtime and LLM cost). Example: 200
     mailto: null # Your email, to use the OpenAlex "polite pool" (faster, more reliable). Example: you@example.com
 

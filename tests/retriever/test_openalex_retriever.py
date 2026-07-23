@@ -114,3 +114,36 @@ def test_openalex_invalid_filter_type(config):
     _set_openalex(config, filter_type="bogus")
     with pytest.raises(ValueError, match="filter_type must be"):
         OpenAlexRetriever(config)
+
+
+def _capture_openalex_params(monkeypatch):
+    import requests
+    from types import SimpleNamespace
+
+    captured = {}
+
+    def _patched(url, **kwargs):
+        captured["params"] = kwargs.get("params", {})
+        return SimpleNamespace(
+            status_code=200, raise_for_status=lambda: None,
+            json=lambda: SAMPLE_OPENALEX_API_RESPONSE,
+        )
+
+    monkeypatch.setattr(requests, "get", _patched)
+    monkeypatch.setattr("zotero_arxiv_daily.retriever.base.sleep", lambda _: None)
+    monkeypatch.setattr("zotero_arxiv_daily.retriever.openalex_retriever.sleep", lambda _: None)
+    return captured
+
+
+def test_openalex_source_types_filter_applied(config, monkeypatch):
+    captured = _capture_openalex_params(monkeypatch)
+    _set_openalex(config, source_types=["journal", "conference"])
+    OpenAlexRetriever(config)._retrieve_raw_papers()
+    assert "primary_location.source.type:journal|conference" in captured["params"]["filter"]
+
+
+def test_openalex_no_source_types_no_filter(config, monkeypatch):
+    captured = _capture_openalex_params(monkeypatch)
+    _set_openalex(config, source_types=None)
+    OpenAlexRetriever(config)._retrieve_raw_papers()
+    assert "primary_location.source.type" not in captured["params"]["filter"]

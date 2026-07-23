@@ -32,6 +32,7 @@ source:
     # Precise mode candidates (see DEPLOYMENT.md). Set filter_type: topic to use these:
     topic_ids: ["T10863","T10860","T10201"] # Voice&Speech Disorders / Speech&Audio Processing / Speech Recognition&Synthesis
     days: 2
+    source_types: ["journal", "conference"] # Only formally published venues; drops Zenodo/institutional-repository hits.
     max_results: 200
     mailto: ${oc.env:OPENALEX_MAILTO,null} # Optional: your email for the OpenAlex polite pool.
 
